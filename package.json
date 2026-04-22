@@ -45,6 +45,15 @@
     "typescript": "5.3.3"
   },
   "manifest": {
+    "browser_specific_settings": {
+      "gecko": {
+        "data_collection_permissions": {
+          "required": [
+            "none"
+          ]
+        }
+      }
+    },
     "permissions": [
       "storage"
     ]
