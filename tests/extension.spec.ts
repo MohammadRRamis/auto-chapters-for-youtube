@@ -276,6 +276,25 @@ const installMockRoutes = async (context: BrowserContext) => {
   })
 }
 
+const triggerUnrelatedYoutubeMutation = async (page: Page) => {
+  await page.evaluate(() => {
+    const target =
+      document.querySelector("#secondary") ??
+      document.querySelector(".ytp-left-controls") ??
+      document.body
+
+    if (!target) {
+      return
+    }
+
+    const marker = document.createElement("div")
+
+    marker.textContent = "mutation-pulse"
+    target.append(marker)
+    marker.remove()
+  })
+}
+
 const getExtensionWorker = async (context: BrowserContext) => {
   let [serviceWorker] = context.serviceWorkers()
 
@@ -515,6 +534,30 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
     )
   ).toBeVisible()
 
+  await youtubePage
+    .locator("#plasmo-summarize-youtube-chapter-toggle")
+    .evaluate((element) => {
+      ;(
+        element as HTMLElement & { __plasmoIdentity?: string }
+      ).__plasmoIdentity = "toggle"
+    })
+
+  await triggerUnrelatedYoutubeMutation(youtubePage)
+
+  await expect
+    .poll(async () => {
+      return youtubePage.evaluate(() => {
+        return (
+          (
+            document.querySelector(
+              "#plasmo-summarize-youtube-chapter-toggle"
+            ) as (HTMLElement & { __plasmoIdentity?: string }) | null
+          )?.__plasmoIdentity === "toggle"
+        )
+      })
+    })
+    .toBe(true)
+
   await expect
     .poll(async () => {
       return youtubePage
@@ -661,6 +704,31 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
   await expect(
     youtubePage.locator(".plasmo-ai-native-panel-summary")
   ).toContainText("Mock Gemini overview for fallback chapters.")
+
+  await youtubePage
+    .locator(".plasmo-ai-native-chapter-item")
+    .first()
+    .evaluate((element) => {
+      ;(
+        element as HTMLElement & { __plasmoIdentity?: string }
+      ).__plasmoIdentity = "chapter-0"
+    })
+
+  await triggerUnrelatedYoutubeMutation(youtubePage)
+
+  await expect
+    .poll(async () => {
+      return youtubePage.evaluate(() => {
+        return (
+          (
+            document.querySelector(".plasmo-ai-native-chapter-item") as
+              | (HTMLElement & { __plasmoIdentity?: string })
+              | null
+          )?.__plasmoIdentity === "chapter-0"
+        )
+      })
+    })
+    .toBe(true)
 
   await youtubePage.locator(".plasmo-ai-native-chapter-item").nth(1).click()
 

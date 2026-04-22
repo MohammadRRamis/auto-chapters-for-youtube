@@ -1,9 +1,26 @@
 {
   "name": "summarize-youtube-videos",
-  "displayName": "Summarize youtube videos",
+  "displayName": "Summarize YouTube Videos",
   "version": "0.0.1",
-  "description": "A basic Plasmo extension.",
-  "author": "",
+  "description": "Browser extension that summarizes YouTube videos with Gemini and adds fallback chapter UI on YouTube.",
+  "author": "MohammadRRamis",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohammadRRamis/summarize-youtube-videos.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MohammadRRamis/summarize-youtube-videos/issues"
+  },
+  "homepage": "https://github.com/MohammadRRamis/summarize-youtube-videos#readme",
+  "keywords": [
+    "plasmo",
+    "browser-extension",
+    "chrome-extension",
+    "youtube",
+    "gemini",
+    "ai-summary",
+    "chapters"
+  ],
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",

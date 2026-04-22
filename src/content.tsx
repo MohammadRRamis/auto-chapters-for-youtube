@@ -1360,6 +1360,58 @@ const createGeneratedChapterPanel = (
   return panel
 }
 
+const syncGeneratedChapterToggleHost = (
+  existingHost: HTMLElement | null,
+  chapters: ResolvedGeminiChapter[]
+) => {
+  if (!existingHost) {
+    return createGeneratedChapterToggle(chapters)
+  }
+
+  const button = existingHost.querySelector<HTMLButtonElement>(
+    `#${CHAPTER_TOGGLE_ID}`
+  )
+  const prefix = existingHost.querySelector<HTMLElement>(
+    ".ytp-chapter-title-prefix"
+  )
+  const content = existingHost.querySelector<HTMLElement>(
+    ".ytp-chapter-title-content"
+  )
+
+  if (!button || !prefix || !content) {
+    return createGeneratedChapterToggle(chapters)
+  }
+
+  button.setAttribute("aria-expanded", String(generatedChapterPanelOpen))
+  prefix.textContent = "\u2022"
+  content.textContent = chapters[0]?.title ?? "Chapters"
+
+  return existingHost
+}
+
+const syncGeneratedChapterPanelHost = (
+  existingHost: HTMLElement | null,
+  chapters: ResolvedGeminiChapter[],
+  summary: string,
+  capturedAt: string,
+  videoId: string
+) => {
+  const host = existingHost ?? document.createElement("div")
+  const shouldReusePanel =
+    host.dataset.capturedAt === capturedAt && host.dataset.videoId === videoId
+
+  host.id = CHAPTER_PANEL_HOST_ID
+  host.dataset.capturedAt = capturedAt
+  host.dataset.videoId = videoId
+  host.hidden = !generatedChapterPanelOpen
+
+  if (!shouldReusePanel) {
+    host.replaceChildren(createGeneratedChapterPanel(chapters, summary))
+  }
+
+  return host
+}
+
 const createGeneratedChapterToggle = (chapters: ResolvedGeminiChapter[]) => {
   const host = document.createElement("div")
   const button = document.createElement("button")
@@ -1390,11 +1442,15 @@ const createGeneratedChapterToggle = (chapters: ResolvedGeminiChapter[]) => {
   return host
 }
 
-const createGeneratedChapterTimeline = (chapters: ResolvedGeminiChapter[]) => {
+const createGeneratedChapterTimeline = (
+  chapters: ResolvedGeminiChapter[],
+  capturedAt: string
+) => {
   const timeline = document.createElement("div")
 
   timeline.id = CHAPTER_TIMELINE_ID
   timeline.dataset.plasmoGenerated = "true"
+  timeline.dataset.capturedAt = capturedAt
 
   for (const [index, chapter] of chapters.entries()) {
     const segment = document.createElement("div")
@@ -1512,29 +1568,43 @@ const mountGeneratedChapterPanel = async () => {
 
   if (toggleMountTarget) {
     const existingToggleHost = document.getElementById(CHAPTER_TOGGLE_HOST_ID)
-    const toggleHost = createGeneratedChapterToggle(resolvedChapters)
+    const toggleHost = syncGeneratedChapterToggleHost(
+      existingToggleHost,
+      resolvedChapters
+    )
 
-    if (existingToggleHost) {
-      existingToggleHost.replaceWith(toggleHost)
-    } else if (toggleMountTarget.matches(".ytp-time-display")) {
-      toggleMountTarget.insertAdjacentElement("afterend", toggleHost)
+    if (toggleMountTarget.matches(".ytp-time-display")) {
+      if (
+        toggleHost.parentElement !== toggleMountTarget.parentElement ||
+        toggleMountTarget.nextElementSibling !== toggleHost
+      ) {
+        toggleMountTarget.insertAdjacentElement("afterend", toggleHost)
+      }
     } else if (toggleMountTarget.matches(".ytp-left-controls")) {
       const timeDisplay =
         toggleMountTarget.querySelector<HTMLElement>(".ytp-time-display")
 
       if (timeDisplay) {
-        timeDisplay.insertAdjacentElement("afterend", toggleHost)
-      } else {
+        if (
+          toggleHost.parentElement !== timeDisplay.parentElement ||
+          timeDisplay.nextElementSibling !== toggleHost
+        ) {
+          timeDisplay.insertAdjacentElement("afterend", toggleHost)
+        }
+      } else if (toggleHost.parentElement !== toggleMountTarget) {
         toggleMountTarget.append(toggleHost)
       }
-    } else {
+    } else if (toggleHost.parentElement !== toggleMountTarget) {
       toggleMountTarget.append(toggleHost)
     }
   }
 
   if (timelineMountTarget) {
     const existingTimeline = document.getElementById(CHAPTER_TIMELINE_ID)
-    const timeline = createGeneratedChapterTimeline(resolvedChapters)
+    const timeline =
+      existingTimeline?.dataset.capturedAt === capturedAt
+        ? existingTimeline
+        : createGeneratedChapterTimeline(resolvedChapters, capturedAt)
     const timelineHost = timelineMountTarget.matches(".ytp-progress-bar")
       ? (() => {
           const host = document.createElement("div")
@@ -1568,36 +1638,43 @@ const mountGeneratedChapterPanel = async () => {
       }
     }
 
-    if (existingTimeline) {
+    if (existingTimeline && existingTimeline !== timeline) {
       existingTimeline.replaceWith(timeline)
-    } else if (timelineMountTarget.matches(".ytp-progress-bar")) {
+    } else if (
+      timelineMountTarget.matches(".ytp-progress-bar") &&
+      timeline.parentElement !== timelineHost
+    ) {
       timelineHost.append(timeline)
       timelineMountTarget.prepend(timelineHost)
-    } else {
+    } else if (
+      !timelineMountTarget.matches(".ytp-progress-bar") &&
+      timeline.parentElement !== timelineMountTarget
+    ) {
       timelineMountTarget.append(timeline)
     }
   }
 
   if (panelMountTarget) {
-    const host = document.createElement("div")
-
-    host.id = CHAPTER_PANEL_HOST_ID
-    host.dataset.capturedAt = capturedAt
-    host.dataset.videoId = videoId
-    host.hidden = !generatedChapterPanelOpen
-    host.append(
-      createGeneratedChapterPanel(resolvedChapters, chapterResult.summary)
+    const host = syncGeneratedChapterPanelHost(
+      existingHost,
+      resolvedChapters,
+      chapterResult.summary,
+      capturedAt,
+      videoId
     )
 
-    if (existingHost) {
-      existingHost.replaceWith(host)
-    } else if (
+    if (
       panelMountTarget.id === "meta-contents" ||
       panelMountTarget.id === "above-the-fold" ||
       panelMountTarget.tagName === "YTD-WATCH-METADATA"
     ) {
-      panelMountTarget.insertAdjacentElement("afterend", host)
-    } else {
+      if (
+        host.parentElement !== panelMountTarget.parentElement ||
+        panelMountTarget.nextElementSibling !== host
+      ) {
+        panelMountTarget.insertAdjacentElement("afterend", host)
+      }
+    } else if (host.parentElement !== panelMountTarget) {
       panelMountTarget.prepend(host)
     }
   }
