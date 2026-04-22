@@ -222,7 +222,7 @@ const injectButtonStyles = () => {
       display: none;
     }
 
-    #${CHAPTER_PANEL_HOST_ID} ytd-engagement-panel-section-list-renderer {
+    #${CHAPTER_PANEL_HOST_ID} .plasmo-ai-native-panel-shell {
       display: block;
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 16px;
@@ -231,7 +231,7 @@ const injectButtonStyles = () => {
       overflow: hidden;
     }
 
-    html[dark] #${CHAPTER_PANEL_HOST_ID} ytd-engagement-panel-section-list-renderer {
+    html[dark] #${CHAPTER_PANEL_HOST_ID} .plasmo-ai-native-panel-shell {
       border-color: rgba(255, 255, 255, 0.08);
       background: #0f0f0f;
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
@@ -1324,9 +1324,7 @@ const createGeneratedChapterPanel = (
   chapters: ResolvedGeminiChapter[],
   summary: string
 ) => {
-  const panel = document.createElement(
-    "ytd-engagement-panel-section-list-renderer"
-  )
+  const panel = document.createElement("div")
   const header = document.createElement("div")
   const headerText = document.createElement("div")
   const eyebrow = document.createElement("span")
@@ -1335,10 +1333,9 @@ const createGeneratedChapterPanel = (
   const list = document.createElement("div")
 
   panel.id = CHAPTER_PANEL_ID
-  panel.setAttribute(
-    "target-id",
-    "engagement-panel-macro-markers-description-chapters"
-  )
+  panel.className = "plasmo-ai-native-panel-shell"
+  panel.setAttribute("role", "dialog")
+  panel.setAttribute("aria-label", "Generated chapters")
   header.className = "plasmo-ai-native-panel-header"
   eyebrow.className = "plasmo-ai-native-panel-eyebrow"
   title.className = "plasmo-ai-native-panel-title"

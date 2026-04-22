@@ -248,6 +248,34 @@ const createYoutubeHtml = (options: {
         ${secondaryMarkup}
         ${description}
         <script>
+          if (!customElements.get('ytd-engagement-panel-section-list-renderer')) {
+            customElements.define(
+              'ytd-engagement-panel-section-list-renderer',
+              class extends HTMLElement {
+                connectedCallback() {
+                  if (this.dataset.plasmoGenerated !== 'true') {
+                    return
+                  }
+
+                  this.replaceChildren(
+                    Object.assign(document.createElement('div'), {
+                      className: 'style-scope ytd-engagement-panel-section-list-renderer',
+                      id: 'header'
+                    }),
+                    Object.assign(document.createElement('div'), {
+                      className: 'style-scope ytd-engagement-panel-section-list-renderer',
+                      id: 'content'
+                    }),
+                    Object.assign(document.createElement('div'), {
+                      className: 'style-scope ytd-engagement-panel-section-list-renderer',
+                      id: 'footer'
+                    })
+                  )
+                }
+              }
+            )
+          }
+
           const video = document.querySelector('video')
           const currentTime = document.querySelector('.ytp-time-current')
           const progressBar = document.querySelector('.ytp-progress-bar')
@@ -720,9 +748,7 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
     })
 
   await expect(
-    youtubePage.locator(
-      "#plasmo-summarize-youtube-chapters-host ytd-engagement-panel-section-list-renderer"
-    )
+    youtubePage.locator("#plasmo-summarize-youtube-engagement-panel")
   ).toBeVisible()
   await expect(
     youtubePage.locator(".plasmo-ai-native-chapter-item")
@@ -809,9 +835,7 @@ test("falls back to metadata when only an ad-only secondary rail is available", 
     youtubePage.locator("#plasmo-summarize-youtube-chapters-host")
   ).toBeVisible()
   await expect(
-    youtubePage.locator(
-      "#plasmo-summarize-youtube-chapters-host ytd-engagement-panel-section-list-renderer"
-    )
+    youtubePage.locator("#plasmo-summarize-youtube-engagement-panel")
   ).toBeVisible()
   await expect(
     youtubePage.locator("#secondary > #plasmo-summarize-youtube-chapters-host")
