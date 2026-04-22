@@ -37,6 +37,7 @@ let mutationObserverInstalled = false
 let lastHandledGeminiRequest = 0
 let youtubeRefreshScheduled = false
 let generatedChapterPanelOpen = false
+let generatedChapterMountSequence = 0
 let generatedChapterSync: {
   callback: () => void
   video: HTMLVideoElement
@@ -868,11 +869,11 @@ const getCurrentResolvedChapter = (
 const findChapterPanelMountTarget = () => {
   const selectors = [
     "#secondary-inner",
-    "#secondary",
-    "#related",
     "#meta-contents",
     "ytd-watch-metadata",
-    "#above-the-fold"
+    "#above-the-fold",
+    "#secondary",
+    "#related"
   ]
 
   for (const selector of selectors) {
@@ -914,14 +915,10 @@ const findChapterTimelineMountTarget = () => {
   return null
 }
 
-const removeGeneratedChapterUi = () => {
-  document.getElementById(CHAPTER_PANEL_HOST_ID)?.remove()
-  document.getElementById(CHAPTER_TOGGLE_HOST_ID)?.remove()
-  document.getElementById(CHAPTER_TIMELINE_ID)?.remove()
-
+const restoreGeneratedTimelineBaseSegments = (root: ParentNode = document) => {
   for (const baseSegment of Array.from(
-    document.querySelectorAll<HTMLElement>(
-      `.ytp-chapters-container > [${GENERATED_TIMELINE_HIDDEN_ATTR}="true"]`
+    root.querySelectorAll<HTMLElement>(
+      `[${GENERATED_TIMELINE_HIDDEN_ATTR}="true"]`
     )
   )) {
     const previousDisplay = baseSegment.dataset.plasmoOriginalDisplay ?? ""
@@ -934,6 +931,24 @@ const removeGeneratedChapterUi = () => {
 
     delete baseSegment.dataset.plasmoOriginalDisplay
     baseSegment.removeAttribute(GENERATED_TIMELINE_HIDDEN_ATTR)
+  }
+}
+
+const removeGeneratedChapterUi = () => {
+  document.getElementById(CHAPTER_PANEL_HOST_ID)?.remove()
+  document.getElementById(CHAPTER_TOGGLE_HOST_ID)?.remove()
+  document.getElementById(CHAPTER_TIMELINE_ID)?.remove()
+
+  restoreGeneratedTimelineBaseSegments()
+
+  for (const generatedTimelineHost of Array.from(
+    document.querySelectorAll<HTMLElement>(
+      `.ytp-chapters-container[data-plasmo-generated="true"]`
+    )
+  )) {
+    if (!generatedTimelineHost.querySelector(`#${CHAPTER_TIMELINE_ID}`)) {
+      generatedTimelineHost.remove()
+    }
   }
 }
 
@@ -1501,6 +1516,8 @@ const createGeneratedChapterTimeline = (
 }
 
 const mountGeneratedChapterPanel = async () => {
+  const mountSequence = ++generatedChapterMountSequence
+
   if (!isYoutubeWatchPage()) {
     generatedChapterPanelOpen = false
     removeGeneratedChapterUi()
@@ -1527,6 +1544,14 @@ const mountGeneratedChapterPanel = async () => {
     (await getLocalStorageValue<StoredGeminiChapterResults>(
       GEMINI_VIDEO_CHAPTERS_KEY
     )) ?? {}
+
+  if (
+    mountSequence !== generatedChapterMountSequence ||
+    !isYoutubeWatchPage()
+  ) {
+    return
+  }
+
   const chapterResult = storedResults[videoId]
 
   if (!chapterResult || chapterResult.chapters.length === 0) {
@@ -1610,6 +1635,7 @@ const mountGeneratedChapterPanel = async () => {
           const host = document.createElement("div")
 
           host.className = "ytp-chapters-container"
+          host.dataset.plasmoGenerated = "true"
 
           return host
         })()
@@ -1619,6 +1645,8 @@ const mountGeneratedChapterPanel = async () => {
       timelineHost.style.position = timelineHost.style.position || "relative"
 
       if (timelineHost.matches(".ytp-chapters-container")) {
+        restoreGeneratedTimelineBaseSegments(timelineHost)
+
         for (const child of Array.from(timelineHost.children)) {
           if (!(child instanceof HTMLElement)) {
             continue

@@ -26,7 +26,10 @@ type RuntimeErrors = {
 const projectRoot = path.resolve(__dirname, "..")
 const extensionPath = path.join(projectRoot, "build", "chrome-mv3-prod")
 
-const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
+const createYoutubeHtml = (options: {
+  adOnlySecondaryRail?: boolean
+  nativeTimestamps: boolean
+}) => {
   const description = options.nativeTimestamps
     ? `
       <div id="description">
@@ -36,6 +39,16 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
       </div>
     `
     : '<div id="description">No native timestamps on this mock video.</div>'
+
+  const secondaryMarkup = options.adOnlySecondaryRail
+    ? `
+        <div id="secondary">
+          <div id="related">
+            <div id="player-ads">Sponsored</div>
+          </div>
+        </div>
+      `
+    : '<div id="secondary"></div>'
 
   return `
     <!doctype html>
@@ -168,6 +181,15 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
             min-height: 24px;
           }
 
+          #player-ads {
+            display: block;
+            min-height: 180px;
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.08);
+            color: #111827;
+          }
+
           #description {
             margin-top: 16px;
             min-height: 24px;
@@ -223,7 +245,7 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
           </ytd-watch-metadata>
         </div>
         <div id="meta-contents"></div>
-        <div id="secondary"></div>
+        ${secondaryMarkup}
         ${description}
         <script>
           const video = document.querySelector('video')
@@ -267,10 +289,14 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
 const installMockRoutes = async (context: BrowserContext) => {
   await context.route("https://www.youtube.com/watch**", async (route) => {
     const url = new URL(route.request().url())
-    const nativeTimestamps = url.searchParams.get("v") === "native-video"
+    const videoId = url.searchParams.get("v")
+    const nativeTimestamps = videoId === "native-video"
 
     await route.fulfill({
-      body: createYoutubeHtml({ nativeTimestamps }),
+      body: createYoutubeHtml({
+        adOnlySecondaryRail: videoId === "ad-rail-video",
+        nativeTimestamps
+      }),
       contentType: "text/html"
     })
   })
@@ -741,6 +767,147 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
     .toBe(75)
 
   await geminiPage.close()
+
+  assertNoRuntimeErrors(runtimeErrors)
+})
+
+test("falls back to metadata when only an ad-only secondary rail is available", async ({
+  context,
+  runtimeErrors
+}) => {
+  await installMockRoutes(context)
+
+  const youtubePage = await context.newPage()
+
+  await youtubePage.goto("https://www.youtube.com/watch?v=ad-rail-video")
+
+  await setLocalStorageValue<StoredGeminiChapterResults>(
+    context,
+    GEMINI_VIDEO_CHAPTERS_KEY,
+    {
+      "ad-rail-video": {
+        capturedAt: Date.now(),
+        chapters: [
+          { start: "0:00", title: "Opening" },
+          { end: "2:10", start: "1:15", title: "Deep dive" }
+        ],
+        requestId: "ad-rail-request",
+        summary: "Mock Gemini overview for the ad rail fallback case.",
+        videoId: "ad-rail-video",
+        videoUrl: "https://www.youtube.com/watch?v=ad-rail-video"
+      }
+    }
+  )
+
+  await expect(
+    youtubePage.locator("#plasmo-summarize-youtube-chapter-toggle")
+  ).toBeVisible({ timeout: 15_000 })
+
+  await youtubePage.locator("#plasmo-summarize-youtube-chapter-toggle").click()
+
+  await expect(
+    youtubePage.locator("#plasmo-summarize-youtube-chapters-host")
+  ).toBeVisible()
+  await expect(
+    youtubePage.locator(
+      "#plasmo-summarize-youtube-chapters-host ytd-engagement-panel-section-list-renderer"
+    )
+  ).toBeVisible()
+  await expect(
+    youtubePage.locator("#secondary > #plasmo-summarize-youtube-chapters-host")
+  ).toHaveCount(0)
+  await expect(
+    youtubePage.locator("#related > #plasmo-summarize-youtube-chapters-host")
+  ).toHaveCount(0)
+
+  assertNoRuntimeErrors(runtimeErrors)
+})
+
+test("restores the native timeline during SPA navigation after generated chapters were shown", async ({
+  context,
+  runtimeErrors
+}) => {
+  await installMockRoutes(context)
+
+  const youtubePage = await context.newPage()
+
+  await youtubePage.goto("https://www.youtube.com/watch?v=fallback-video")
+
+  await setLocalStorageValue<StoredGeminiChapterResults>(
+    context,
+    GEMINI_VIDEO_CHAPTERS_KEY,
+    {
+      "fallback-video": {
+        capturedAt: Date.now(),
+        chapters: [
+          { start: "0:00", title: "Opening" },
+          { end: "2:10", start: "1:15", title: "Deep dive" }
+        ],
+        requestId: "fallback-request",
+        summary: "Mock Gemini overview for fallback chapters.",
+        videoId: "fallback-video",
+        videoUrl: "https://www.youtube.com/watch?v=fallback-video"
+      }
+    }
+  )
+
+  await expect(
+    youtubePage.locator(
+      ".ytp-chapters-container #plasmo-summarize-youtube-chapter-timeline"
+    )
+  ).toBeVisible({ timeout: 15_000 })
+  await expect(
+    youtubePage.locator(
+      ".ytp-chapters-container > .ytp-chapter-hover-container:not(#plasmo-summarize-youtube-chapter-timeline)"
+    )
+  ).toBeHidden()
+
+  await youtubePage.evaluate(() => {
+    history.pushState({}, "", "/watch?v=next-video")
+
+    const hiddenNativeSegment = document.querySelector<HTMLElement>(
+      '.ytp-chapter-hover-container[data-plasmo-generated-base-hidden="true"]'
+    )
+
+    if (!hiddenNativeSegment || !hiddenNativeSegment.parentElement) {
+      return
+    }
+
+    const wrapper = document.createElement("div")
+
+    wrapper.className = "ytp-progress-reuse-wrapper"
+    hiddenNativeSegment.parentElement.append(wrapper)
+    wrapper.append(hiddenNativeSegment)
+  })
+
+  await expect(
+    youtubePage.locator("#plasmo-summarize-youtube-chapter-timeline")
+  ).toHaveCount(0)
+  await expect
+    .poll(async () => {
+      return youtubePage.evaluate(() => {
+        const nativeSegment = document.querySelector<HTMLElement>(
+          ".ytp-progress-reuse-wrapper .ytp-chapter-hover-container"
+        )
+
+        if (!nativeSegment) {
+          return null
+        }
+
+        return {
+          computedDisplay: getComputedStyle(nativeSegment).display,
+          hiddenAttr: nativeSegment.getAttribute(
+            "data-plasmo-generated-base-hidden"
+          ),
+          inlineDisplay: nativeSegment.style.display
+        }
+      })
+    })
+    .toEqual({
+      computedDisplay: "block",
+      hiddenAttr: null,
+      inlineDisplay: ""
+    })
 
   assertNoRuntimeErrors(runtimeErrors)
 })
