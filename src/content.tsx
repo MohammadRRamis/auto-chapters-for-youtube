@@ -23,6 +23,7 @@ const CHAPTER_PANEL_ID = "plasmo-summarize-youtube-engagement-panel"
 const CHAPTER_TOGGLE_HOST_ID = "plasmo-summarize-youtube-chapter-toggle-host"
 const CHAPTER_TOGGLE_ID = "plasmo-summarize-youtube-chapter-toggle"
 const CHAPTER_TIMELINE_ID = "plasmo-summarize-youtube-chapter-timeline"
+const GENERATED_TIMELINE_HIDDEN_ATTR = "data-plasmo-generated-base-hidden"
 const SUMMARY_BUTTON_STYLE_ID = "plasmo-summarize-youtube-style"
 const URL_CHANGE_EVENT = "plasmo:urlchange"
 
@@ -40,6 +41,13 @@ let generatedChapterSync: {
   callback: () => void
   video: HTMLVideoElement
 } | null = null
+let generatedChapterHoverSync: {
+  clearHover: () => void
+  handleDocumentMove: (event: MouseEvent) => void
+  handleMove: (event: MouseEvent) => void
+  progressBar: HTMLElement
+} | null = null
+let generatedChapterTooltipSync: MutationObserver | null = null
 
 const isYoutubeWatchPage = () =>
   window.location.hostname === "www.youtube.com" &&
@@ -158,7 +166,7 @@ const injectButtonStyles = () => {
       position: absolute;
       inset: 0;
       display: flex;
-      gap: 2px;
+      gap: 4px;
       height: 100%;
       pointer-events: none;
       z-index: 1;
@@ -168,17 +176,31 @@ const injectButtonStyles = () => {
       flex: var(--chapter-flex, 1) 1 0%;
       min-width: 0;
       height: 100%;
-      border-radius: 3px;
-      background: rgba(255, 255, 255, 0.28);
-      transition: background-color 160ms ease;
+      position: relative;
+      overflow: hidden;
     }
 
-    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment:hover {
-      background: rgba(255, 255, 255, 0.42);
+    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment .ytp-progress-bar-padding {
+      display: none;
     }
 
-    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment[data-active="true"] {
-      background: #ff4e45;
+    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment .ytp-progress-list {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      overflow: hidden;
+    }
+
+    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment .ytp-play-progress,
+    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment .ytp-load-progress,
+    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment .ytp-hover-progress {
+      left: 0;
+      transform-origin: left center;
+    }
+
+    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment .ytp-hover-progress,
+    #${CHAPTER_TIMELINE_ID} .plasmo-ai-chapter-segment .ytp-ad-progress-list {
+      display: none;
     }
 
     #${CHAPTER_PANEL_HOST_ID} {
@@ -727,12 +749,32 @@ const getVideoElement = () =>
 
 const getVideoDurationSeconds = () => {
   const video = getVideoElement()
+  const durationText = document
+    .querySelector<HTMLElement>(".ytp-time-duration")
+    ?.textContent?.trim()
+  const sliderMaxValue = Number(
+    document
+      .querySelector<HTMLElement>(".ytp-progress-bar")
+      ?.getAttribute("aria-valuemax") ?? ""
+  )
 
-  if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
-    return null
+  if (video && Number.isFinite(video.duration) && video.duration > 0) {
+    return Math.floor(video.duration)
   }
 
-  return Math.floor(video.duration)
+  const parsedDuration = durationText
+    ? parseTimestampToSeconds(durationText)
+    : null
+
+  if (parsedDuration !== null) {
+    return parsedDuration
+  }
+
+  if (Number.isFinite(sliderMaxValue) && sliderMaxValue > 0) {
+    return Math.floor(sliderMaxValue)
+  }
+
+  return null
 }
 
 const resolveGeminiChapters = (
@@ -868,6 +910,23 @@ const removeGeneratedChapterUi = () => {
   document.getElementById(CHAPTER_PANEL_HOST_ID)?.remove()
   document.getElementById(CHAPTER_TOGGLE_HOST_ID)?.remove()
   document.getElementById(CHAPTER_TIMELINE_ID)?.remove()
+
+  for (const baseSegment of Array.from(
+    document.querySelectorAll<HTMLElement>(
+      `.ytp-chapters-container > [${GENERATED_TIMELINE_HIDDEN_ATTR}="true"]`
+    )
+  )) {
+    const previousDisplay = baseSegment.dataset.plasmoOriginalDisplay ?? ""
+
+    if (previousDisplay) {
+      baseSegment.style.display = previousDisplay
+    } else {
+      baseSegment.style.removeProperty("display")
+    }
+
+    delete baseSegment.dataset.plasmoOriginalDisplay
+    baseSegment.removeAttribute(GENERATED_TIMELINE_HIDDEN_ATTR)
+  }
 }
 
 const unbindGeneratedChapterSync = () => {
@@ -883,6 +942,28 @@ const unbindGeneratedChapterSync = () => {
   video.removeEventListener("durationchange", callback)
 
   generatedChapterSync = null
+}
+
+const unbindGeneratedChapterHoverSync = () => {
+  if (!generatedChapterHoverSync) {
+    return
+  }
+
+  const { clearHover, handleDocumentMove, handleMove, progressBar } =
+    generatedChapterHoverSync
+
+  document.removeEventListener("mousemove", handleDocumentMove, true)
+  progressBar.removeEventListener("mouseenter", handleMove)
+  progressBar.removeEventListener("mousemove", handleMove)
+  progressBar.removeEventListener("mouseleave", clearHover)
+
+  clearHover()
+  generatedChapterHoverSync = null
+}
+
+const unbindGeneratedChapterTooltipSync = () => {
+  generatedChapterTooltipSync?.disconnect()
+  generatedChapterTooltipSync = null
 }
 
 const seekVideoToTimestamp = (timestamp: string) => {
@@ -912,6 +993,92 @@ const setGeneratedChapterPanelVisibility = (isOpen: boolean) => {
   }
 }
 
+const setGeneratedTimelineTooltipTitle = (title: string) => {
+  const tooltipPillTitle = document.querySelector<HTMLElement>(
+    ".ytp-tooltip-progress-bar-pill-title"
+  )
+  const tooltipTitle = document.querySelector<HTMLElement>(
+    ".ytp-tooltip-title span"
+  )
+
+  if (tooltipPillTitle) {
+    tooltipPillTitle.textContent = title
+  }
+
+  if (tooltipTitle) {
+    tooltipTitle.textContent = title
+  }
+}
+
+const setGeneratedTimelineHoverPreview = (hoveredSeconds: number | null) => {
+  let hoveredChapterTitle = ""
+
+  for (const segment of Array.from(
+    document.querySelectorAll<HTMLElement>(".plasmo-ai-chapter-segment")
+  )) {
+    const hoverProgress = segment.querySelector<HTMLElement>(
+      ".ytp-hover-progress"
+    )
+    const startSeconds = Number(segment.dataset.startSeconds ?? "0")
+    const endSeconds = Number(segment.dataset.endSeconds ?? startSeconds)
+    const durationSeconds = Math.max(1, endSeconds - startSeconds)
+    const isHovered =
+      hoveredSeconds !== null &&
+      hoveredSeconds >= startSeconds &&
+      hoveredSeconds < endSeconds
+
+    if (hoverProgress) {
+      hoverProgress.style.display = isHovered ? "block" : "none"
+      hoverProgress.style.transform = isHovered
+        ? `scaleX(${Math.min(
+            1,
+            Math.max(0, (hoveredSeconds - startSeconds) / durationSeconds)
+          )})`
+        : "scaleX(0)"
+    }
+
+    if (isHovered) {
+      hoveredChapterTitle = segment.dataset.chapterTitle ?? ""
+    }
+  }
+
+  setGeneratedTimelineTooltipTitle(hoveredChapterTitle)
+}
+
+const syncGeneratedTimelineTooltipFromTimestamp = (
+  chapters: ResolvedGeminiChapter[]
+) => {
+  const tooltipTimestamp = document
+    .querySelector<HTMLElement>(".ytp-tooltip-progress-bar-pill-time-stamp")
+    ?.textContent?.trim()
+
+  if (!tooltipTimestamp) {
+    setGeneratedTimelineHoverPreview(null)
+
+    return
+  }
+
+  const hoveredSeconds = parseTimestampToSeconds(tooltipTimestamp)
+
+  if (hoveredSeconds === null) {
+    setGeneratedTimelineTooltipTitle("")
+
+    return
+  }
+
+  const durationSeconds = getVideoDurationSeconds()
+
+  if (durationSeconds !== null) {
+    setGeneratedTimelineHoverPreview(Math.min(hoveredSeconds, durationSeconds))
+
+    return
+  }
+
+  setGeneratedTimelineTooltipTitle(
+    getCurrentResolvedChapter(chapters, hoveredSeconds).title
+  )
+}
+
 const updateGeneratedChapterUiState = (chapters: ResolvedGeminiChapter[]) => {
   const video = getVideoElement()
   const toggle = document.getElementById(CHAPTER_TOGGLE_ID)
@@ -919,6 +1086,11 @@ const updateGeneratedChapterUiState = (chapters: ResolvedGeminiChapter[]) => {
     chapters,
     video?.currentTime ?? 0
   )
+  const currentTime = video?.currentTime ?? 0
+  const bufferedEnd =
+    video && video.buffered.length > 0
+      ? video.buffered.end(video.buffered.length - 1)
+      : currentTime
 
   if (toggle instanceof HTMLButtonElement && activeChapter) {
     const content = toggle.querySelector<HTMLElement>(
@@ -945,9 +1117,35 @@ const updateGeneratedChapterUiState = (chapters: ResolvedGeminiChapter[]) => {
   for (const segment of Array.from(
     document.querySelectorAll<HTMLElement>(".plasmo-ai-chapter-segment")
   )) {
+    const startSeconds = Number(segment.dataset.startSeconds ?? "0")
+    const endSeconds = Number(segment.dataset.endSeconds ?? startSeconds)
+    const durationSeconds = Math.max(1, endSeconds - startSeconds)
+    const playedRatio = Math.min(
+      1,
+      Math.max(0, (currentTime - startSeconds) / durationSeconds)
+    )
+    const bufferedRatio = Math.min(
+      1,
+      Math.max(0, (bufferedEnd - startSeconds) / durationSeconds)
+    )
+    const playProgress =
+      segment.querySelector<HTMLElement>(".ytp-play-progress")
+    const loadProgress =
+      segment.querySelector<HTMLElement>(".ytp-load-progress")
+
     segment.dataset.active = String(
       segment.dataset.startSeconds === String(activeChapter?.startSeconds)
     )
+
+    if (playProgress) {
+      playProgress.style.transform = `scaleX(${playedRatio})`
+      playProgress.style.backgroundSize = "100% 100%"
+      playProgress.style.backgroundPositionX = "0px"
+    }
+
+    if (loadProgress) {
+      loadProgress.style.transform = `scaleX(${bufferedRatio})`
+    }
   }
 }
 
@@ -977,6 +1175,96 @@ const bindGeneratedChapterSync = (chapters: ResolvedGeminiChapter[]) => {
   }
 
   callback()
+}
+
+const bindGeneratedChapterHoverSync = (chapters: ResolvedGeminiChapter[]) => {
+  const progressBar = document.querySelector<HTMLElement>(".ytp-progress-bar")
+
+  if (!progressBar) {
+    unbindGeneratedChapterHoverSync()
+
+    return
+  }
+
+  unbindGeneratedChapterHoverSync()
+
+  const clearHover = () => {
+    setGeneratedTimelineHoverPreview(null)
+  }
+
+  const updateFromClientPosition = (clientX: number) => {
+    const durationSeconds = getVideoDurationSeconds()
+    const rect = progressBar.getBoundingClientRect()
+
+    if (!durationSeconds || rect.width <= 0) {
+      clearHover()
+
+      return
+    }
+
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+
+    setGeneratedTimelineHoverPreview(ratio * durationSeconds)
+  }
+
+  const handleMove = (event: MouseEvent) => {
+    updateFromClientPosition(event.clientX)
+  }
+
+  const handleDocumentMove = (event: MouseEvent) => {
+    const rect = progressBar.getBoundingClientRect()
+    const isInsideProgressBar =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom
+
+    if (!isInsideProgressBar) {
+      return
+    }
+
+    updateFromClientPosition(event.clientX)
+  }
+
+  document.addEventListener("mousemove", handleDocumentMove, true)
+  progressBar.addEventListener("mouseenter", handleMove)
+  progressBar.addEventListener("mousemove", handleMove)
+  progressBar.addEventListener("mouseleave", clearHover)
+  progressBar.dataset.plasmoHoverSync = "true"
+
+  generatedChapterHoverSync = {
+    clearHover,
+    handleDocumentMove,
+    handleMove,
+    progressBar
+  }
+}
+
+const bindGeneratedChapterTooltipSync = (chapters: ResolvedGeminiChapter[]) => {
+  const tooltipTimestamp = document.querySelector<HTMLElement>(
+    ".ytp-tooltip-progress-bar-pill-time-stamp"
+  )
+
+  if (!tooltipTimestamp) {
+    unbindGeneratedChapterTooltipSync()
+
+    return
+  }
+
+  unbindGeneratedChapterTooltipSync()
+
+  const observer = new MutationObserver(() => {
+    syncGeneratedTimelineTooltipFromTimestamp(chapters)
+  })
+
+  observer.observe(tooltipTimestamp, {
+    characterData: true,
+    childList: true,
+    subtree: true
+  })
+
+  generatedChapterTooltipSync = observer
+  syncGeneratedTimelineTooltipFromTimestamp(chapters)
 }
 
 const createChapterButton = (chapter: ResolvedGeminiChapter) => {
@@ -1100,17 +1388,48 @@ const createGeneratedChapterTimeline = (chapters: ResolvedGeminiChapter[]) => {
   timeline.id = CHAPTER_TIMELINE_ID
   timeline.dataset.plasmoGenerated = "true"
 
-  for (const chapter of chapters) {
+  for (const [index, chapter] of chapters.entries()) {
     const segment = document.createElement("div")
+    const padding = document.createElement("div")
+    const progressList = document.createElement("div")
+    const playProgress = document.createElement("div")
+    const liveBuffer = document.createElement("div")
+    const loadProgress = document.createElement("div")
+    const hoverProgress = document.createElement("div")
+    const adProgress = document.createElement("div")
     const chapterDuration = Math.max(
       1,
       chapter.endSeconds - chapter.startSeconds
     )
 
-    segment.className = "plasmo-ai-chapter-segment"
+    segment.className =
+      "ytp-chapter-hover-container ytp-exp-chapter-hover-container plasmo-ai-chapter-segment"
+    segment.dataset.chapterTitle = chapter.title
     segment.dataset.startSeconds = String(chapter.startSeconds)
+    segment.dataset.endSeconds = String(chapter.endSeconds)
     segment.style.setProperty("--chapter-flex", String(chapterDuration))
     segment.title = `${chapter.title} (${chapter.start})`
+
+    padding.className = "ytp-progress-bar-padding"
+    progressList.className = `ytp-progress-list${index === 0 ? " ytp-progress-bar-start" : ""}${index === chapters.length - 1 ? " ytp-progress-bar-end" : ""}`
+    playProgress.className = "ytp-play-progress ytp-swatch-background-color"
+    liveBuffer.className = "ytp-progress-linear-live-buffer"
+    loadProgress.className = "ytp-load-progress"
+    hoverProgress.className = "ytp-hover-progress ytp-hover-progress-light"
+    adProgress.className = "ytp-ad-progress-list"
+
+    playProgress.style.transform = "scaleX(0)"
+    loadProgress.style.transform = "scaleX(0)"
+    hoverProgress.style.display = "none"
+
+    progressList.append(
+      playProgress,
+      liveBuffer,
+      loadProgress,
+      hoverProgress,
+      adProgress
+    )
+    segment.append(padding, progressList)
     timeline.append(segment)
   }
 
@@ -1122,6 +1441,8 @@ const mountGeneratedChapterPanel = async () => {
     generatedChapterPanelOpen = false
     removeGeneratedChapterUi()
     unbindGeneratedChapterSync()
+    unbindGeneratedChapterHoverSync()
+    unbindGeneratedChapterTooltipSync()
 
     return
   }
@@ -1132,6 +1453,8 @@ const mountGeneratedChapterPanel = async () => {
     generatedChapterPanelOpen = false
     removeGeneratedChapterUi()
     unbindGeneratedChapterSync()
+    unbindGeneratedChapterHoverSync()
+    unbindGeneratedChapterTooltipSync()
 
     return
   }
@@ -1146,6 +1469,8 @@ const mountGeneratedChapterPanel = async () => {
     generatedChapterPanelOpen = false
     removeGeneratedChapterUi()
     unbindGeneratedChapterSync()
+    unbindGeneratedChapterHoverSync()
+    unbindGeneratedChapterTooltipSync()
 
     return
   }
@@ -1159,6 +1484,8 @@ const mountGeneratedChapterPanel = async () => {
     generatedChapterPanelOpen = false
     removeGeneratedChapterUi()
     unbindGeneratedChapterSync()
+    unbindGeneratedChapterHoverSync()
+    unbindGeneratedChapterTooltipSync()
 
     return
   }
@@ -1212,6 +1539,25 @@ const mountGeneratedChapterPanel = async () => {
 
     if (timelineHost instanceof HTMLElement) {
       timelineHost.style.position = timelineHost.style.position || "relative"
+
+      if (timelineHost.matches(".ytp-chapters-container")) {
+        for (const child of Array.from(timelineHost.children)) {
+          if (!(child instanceof HTMLElement)) {
+            continue
+          }
+
+          if (
+            child.id === CHAPTER_TIMELINE_ID ||
+            child.dataset.plasmoGenerated === "true"
+          ) {
+            continue
+          }
+
+          child.dataset.plasmoOriginalDisplay = child.style.display
+          child.style.display = "none"
+          child.setAttribute(GENERATED_TIMELINE_HIDDEN_ATTR, "true")
+        }
+      }
     }
 
     if (existingTimeline) {
@@ -1249,6 +1595,8 @@ const mountGeneratedChapterPanel = async () => {
   }
 
   bindGeneratedChapterSync(resolvedChapters)
+  bindGeneratedChapterHoverSync(resolvedChapters)
+  bindGeneratedChapterTooltipSync(resolvedChapters)
   setGeneratedChapterPanelVisibility(generatedChapterPanelOpen)
 }
 

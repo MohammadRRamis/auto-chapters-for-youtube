@@ -142,6 +142,22 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
             cursor: pointer;
           }
 
+          .html5-video-player {
+            width: 640px;
+          }
+
+          .ytp-progress-bar {
+            position: relative;
+            width: 600px;
+            height: 6px;
+          }
+
+          .ytp-chapters-container,
+          .ytp-chapter-hover-container,
+          .ytp-progress-list {
+            height: 100%;
+          }
+
           #secondary {
             min-height: 24px;
           }
@@ -186,6 +202,12 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
             </div>
           </div>
         </div>
+        <div class="ytp-tooltip-text-wrapper">
+          <div class="ytp-tooltip-image"></div>
+          <div class="ytp-tooltip-title"><span></span><div class="ytp-tooltip-keyboard-shortcut"></div></div>
+          <div class="ytp-tooltip-bottom-text"><span class="ytp-tooltip-text"></span><div class="ytp-tooltip-keyboard-shortcut"></div></div>
+          <div class="ytp-tooltip-progress-bar-pill"><div class="ytp-tooltip-progress-bar-pill-time-stamp">0:00</div><div class="ytp-tooltip-progress-bar-pill-title"></div></div>
+        </div>
         <div id="above-the-fold">
           <ytd-watch-metadata>
             <div id="top-level-buttons-computed">
@@ -199,6 +221,8 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
         <script>
           const video = document.querySelector('video')
           const currentTime = document.querySelector('.ytp-time-current')
+          const progressBar = document.querySelector('.ytp-progress-bar')
+          const tooltipTimestamp = document.querySelector('.ytp-tooltip-progress-bar-pill-time-stamp')
 
           Object.defineProperty(video, 'duration', {
             configurable: true,
@@ -214,6 +238,18 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
 
           video.addEventListener('timeupdate', updateTimeDisplay)
           video.addEventListener('seeking', updateTimeDisplay)
+          progressBar.addEventListener('mousemove', (event) => {
+            const rect = progressBar.getBoundingClientRect()
+            const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+            const hoveredSeconds = Math.floor(ratio * 300)
+            const minutes = Math.floor(hoveredSeconds / 60)
+            const seconds = String(hoveredSeconds % 60).padStart(2, '0')
+
+            tooltipTimestamp.textContent = minutes + ':' + seconds
+          })
+          progressBar.addEventListener('mouseleave', () => {
+            tooltipTimestamp.textContent = ''
+          })
           updateTimeDisplay()
         </script>
       </body>
@@ -481,6 +517,21 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
       ".ytp-chapters-container #plasmo-summarize-youtube-chapter-timeline"
     )
   ).toBeVisible()
+  await expect(
+    youtubePage.locator(
+      ".ytp-chapters-container > .ytp-chapter-hover-container:not(#plasmo-summarize-youtube-chapter-timeline)"
+    )
+  ).toBeHidden()
+
+  await youtubePage
+    .locator(".ytp-tooltip-progress-bar-pill-time-stamp")
+    .evaluate((element) => {
+      element.textContent = "1:40"
+    })
+
+  await expect(
+    youtubePage.locator(".ytp-tooltip-progress-bar-pill-title")
+  ).toHaveText("Deep dive")
 
   await chapterToggle.click()
 
