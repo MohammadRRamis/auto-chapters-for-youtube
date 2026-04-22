@@ -125,6 +125,12 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
             color: white;
           }
 
+          .ytp-chapter-container {
+            box-sizing: border-box;
+            height: 64px;
+            padding-top: 8px;
+          }
+
           .ytp-time-display {
             display: block;
             line-height: 40px;
@@ -191,6 +197,7 @@ const createYoutubeHtml = (options: { nativeTimestamps: boolean }) => {
             <div class="ytp-chrome-controls">
               <div class="ytp-left-controls">
                 <button class="ytp-play-button ytp-button" type="button">Play</button>
+                <button class="ytp-mute-button ytp-button" type="button">Mute</button>
                 <div class="ytp-time-display notranslate">
                   <div class="ytp-time-wrapper ytp-time-wrapper-delhi">
                     <span class="ytp-time-current">0:00</span>
@@ -507,6 +514,110 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
       ".ytp-time-display + #plasmo-summarize-youtube-chapter-toggle-host"
     )
   ).toBeVisible()
+
+  await expect
+    .poll(async () => {
+      return youtubePage
+        .locator("#plasmo-summarize-youtube-chapter-toggle")
+        .evaluate((element) => {
+          const toggle = element as HTMLElement
+          const host = document.querySelector(
+            "#plasmo-summarize-youtube-chapter-toggle-host"
+          ) as HTMLElement | null
+          const playButton = document.querySelector(
+            ".ytp-play-button"
+          ) as HTMLElement | null
+          const muteButton = document.querySelector(
+            ".ytp-mute-button"
+          ) as HTMLElement | null
+          const timeDisplay = document.querySelector(
+            ".ytp-time-display"
+          ) as HTMLElement | null
+          const styles = getComputedStyle(toggle)
+          const toggleRect = toggle.getBoundingClientRect()
+          const getCenterY = (target: HTMLElement | null) => {
+            if (!target) {
+              return null
+            }
+
+            const rect = target.getBoundingClientRect()
+
+            return rect.top + rect.height / 2
+          }
+
+          return {
+            hostHeight: host ? getComputedStyle(host).height : null,
+            hostPaddingTop: host
+              ? Number.parseFloat(getComputedStyle(host).paddingTop)
+              : null,
+            paddingLeft: Number.parseFloat(styles.paddingLeft),
+            paddingRight: Number.parseFloat(styles.paddingRight),
+            playDelta: Math.abs(
+              (getCenterY(playButton) ?? 0) -
+                (toggleRect.top + toggleRect.height / 2)
+            ),
+            muteDelta: Math.abs(
+              (getCenterY(muteButton) ?? 0) -
+                (toggleRect.top + toggleRect.height / 2)
+            ),
+            timeDelta: Math.abs(
+              (getCenterY(timeDisplay) ?? 0) -
+                (toggleRect.top + toggleRect.height / 2)
+            )
+          }
+        })
+    })
+    .toEqual(
+      expect.objectContaining({
+        hostHeight: "56px",
+        hostPaddingTop: 0,
+        paddingLeft: 8,
+        paddingRight: 8,
+        playDelta: expect.any(Number),
+        muteDelta: expect.any(Number),
+        timeDelta: expect.any(Number)
+      })
+    )
+  await expect
+    .poll(async () => {
+      return youtubePage
+        .locator("#plasmo-summarize-youtube-chapter-toggle")
+        .evaluate((element) => {
+          const toggle = element as HTMLElement
+          const playButton = document.querySelector(
+            ".ytp-play-button"
+          ) as HTMLElement | null
+          const muteButton = document.querySelector(
+            ".ytp-mute-button"
+          ) as HTMLElement | null
+          const timeDisplay = document.querySelector(
+            ".ytp-time-display"
+          ) as HTMLElement | null
+          const toggleCenter =
+            toggle.getBoundingClientRect().top +
+            toggle.getBoundingClientRect().height / 2
+          const getCenterY = (target: HTMLElement | null) => {
+            if (!target) {
+              return null
+            }
+
+            const rect = target.getBoundingClientRect()
+
+            return rect.top + rect.height / 2
+          }
+
+          return {
+            playDelta: Math.abs((getCenterY(playButton) ?? 0) - toggleCenter),
+            muteDelta: Math.abs((getCenterY(muteButton) ?? 0) - toggleCenter),
+            timeDelta: Math.abs((getCenterY(timeDisplay) ?? 0) - toggleCenter)
+          }
+        })
+    })
+    .toEqual({
+      playDelta: 0,
+      muteDelta: 0,
+      timeDelta: 0
+    })
   await expect(
     youtubePage.locator(
       "#plasmo-summarize-youtube-chapter-timeline .plasmo-ai-chapter-segment"
@@ -533,7 +644,11 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
     youtubePage.locator(".ytp-tooltip-progress-bar-pill-title")
   ).toHaveText("Deep dive")
 
-  await chapterToggle.click()
+  await youtubePage
+    .locator("#plasmo-summarize-youtube-chapter-toggle")
+    .evaluate((element) => {
+      ;(element as HTMLButtonElement).click()
+    })
 
   await expect(
     youtubePage.locator(

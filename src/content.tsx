@@ -123,8 +123,11 @@ const injectButtonStyles = () => {
       align-items: center;
       flex: 0 1 auto;
       min-width: 0;
+      height: 56px;
       max-width: min(460px, 40vw);
       margin-left: 12px;
+      padding: 0;
+      box-sizing: border-box;
       color: white;
       align-self: center;
     }
@@ -136,10 +139,15 @@ const injectButtonStyles = () => {
     #${CHAPTER_TOGGLE_ID} {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       min-width: 0;
       max-width: 100%;
-      padding: 0;
+      min-height: 24px;
+      padding: 0 8px;
+      box-sizing: border-box;
+      border-radius: 12px;
       color: white;
+      line-height: 1.2;
       opacity: 0.94;
     }
 
