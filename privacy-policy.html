@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy | Summarize YouTube Videos</title>
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --panel: rgba(255, 252, 247, 0.88);
+        --text: #1d1b18;
+        --muted: #5f584f;
+        --line: rgba(29, 27, 24, 0.12);
+        --accent: #b55233;
+        --accent-soft: rgba(181, 82, 51, 0.12);
+        --shadow: 0 24px 70px rgba(88, 56, 35, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(181, 82, 51, 0.2), transparent 34%),
+          radial-gradient(circle at 85% 18%, rgba(120, 125, 87, 0.18), transparent 28%),
+          linear-gradient(180deg, #f9f5ee 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        width: min(880px, calc(100% - 32px));
+        margin: 40px auto;
+        padding: 28px;
+      }
+
+      .card {
+        position: relative;
+        overflow: hidden;
+        padding: 32px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.66), transparent 45%),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 18px,
+            rgba(29, 27, 24, 0.018) 18px,
+            rgba(29, 27, 24, 0.018) 19px
+          );
+        pointer-events: none;
+      }
+
+      .inner {
+        position: relative;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.5rem, 6vw, 4.4rem);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+      }
+
+      .lede {
+        max-width: 42rem;
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+        line-height: 1.7;
+      }
+
+      .stamp {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+        margin-top: 34px;
+      }
+
+      section {
+        padding: 20px 0 0;
+        border-top: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 1.1rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.75;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+      }
+
+      li {
+        margin: 0 0 10px;
+        line-height: 1.7;
+      }
+
+      strong {
+        color: var(--text);
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .closing {
+        margin-top: 24px;
+        padding: 18px 20px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(29, 27, 24, 0.08);
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          width: min(100% - 20px, 880px);
+          margin: 18px auto;
+          padding: 0;
+        }
+
+        .card {
+          padding: 22px;
+          border-radius: 22px;
+        }
+
+        .lede,
+        p,
+        li {
+          font-size: 0.98rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <article class="card">
+        <div class="inner">
+          <div class="eyebrow">Summarize YouTube Videos</div>
+          <h1>Privacy Policy</h1>
+          <p class="lede">
+            This extension is designed to work locally in your browser. We do not collect,
+            sell, or share your personal data, and we do not operate any backend service that
+            receives your browsing data or generated summaries.
+          </p>
+          <p class="stamp">Effective date: April 22, 2026</p>
+
+          <div class="grid">
+            <section>
+              <h2>What We Collect</h2>
+              <p><strong>We do not collect personal data.</strong></p>
+              <p>
+                The extension does not require account registration, does not run its own
+                analytics, and does not send your information to any developer-controlled server.
+              </p>
+            </section>
+
+            <section>
+              <h2>How The Extension Works</h2>
+              <p>
+                When you use the extension on a YouTube video, it can prepare a prompt for
+                Gemini and store the current request state and generated chapter data in your
+                browser's extension storage so the feature works correctly.
+              </p>
+              <ul>
+                <li>The stored data stays locally in your browser.</li>
+                <li>No remote database or developer-owned server is used by this project.</li>
+                <li>The extension only uses the minimum browser permission needed for local storage.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2>Third-Party Services</h2>
+              <p>
+                This extension may open and interact with Gemini as part of the summary workflow.
+                If you choose to use that workflow, your use of Gemini is subject to Google's own
+                terms and privacy policy, not this extension's policy.
+              </p>
+              <p>
+                This extension does not control how third-party services process data once you are
+                on their websites.
+              </p>
+            </section>
+
+            <section>
+              <h2>Data Sharing</h2>
+              <p>
+                We do not sell your data. We do not rent your data. We do not transfer your data
+                to advertisers, data brokers, or analytics providers.
+              </p>
+            </section>
+
+            <section>
+              <h2>Changes To This Policy</h2>
+              <p>
+                If the extension's data practices change in the future, this page will be updated
+                before those changes take effect.
+              </p>
+            </section>
+          </div>
+
+          <div class="closing">
+            <p>
+              Questions about this policy can be directed through the project's GitHub repository:
+              <a href="https://github.com/MohammadRRamis/summarize-youtube-videos">github.com/MohammadRRamis/summarize-youtube-videos</a>
+            </p>
+          </div>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>
