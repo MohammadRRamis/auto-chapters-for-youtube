@@ -35,7 +35,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         return
       }
 
-      chrome.tabs.create({ active: true, url: GEMINI_APP_URL }, () => {
+      chrome.tabs.create({ active: false, url: GEMINI_APP_URL }, () => {
         if (chrome.runtime.lastError) {
           sendResponse({ error: chrome.runtime.lastError.message, ok: false })
 

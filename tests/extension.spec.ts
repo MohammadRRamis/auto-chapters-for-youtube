@@ -527,6 +527,7 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
   const summaryButton = youtubePage.locator("#plasmo-summarize-youtube-button")
 
   await expect(summaryButton).toBeVisible()
+  await summaryButton.focus()
 
   const geminiPagePromise = context.waitForEvent("page")
 
@@ -535,6 +536,11 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
   const geminiPage = await geminiPagePromise
 
   await geminiPage.waitForURL(/https:\/\/gemini\.google\.com\/app/)
+  await expect
+    .poll(async () => {
+      return youtubePage.evaluate(() => document.hasFocus())
+    })
+    .toBe(true)
 
   const request =
     (await getLocalStorageValue<PendingGeminiSummaryRequest>(
@@ -560,6 +566,10 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
     `Use this exact requestId value in the JSON: ${request?.requestId}`
   )
 
+  await expect(summaryButton).toBeDisabled()
+  await expect(summaryButton).toHaveAttribute("data-state", "busy")
+  await expect(summaryButton).toHaveText(/Opening Gemini\.\.\.|Generating chapters\.\.\./)
+
   await setLocalStorageValue<StoredGeminiChapterResults>(
     context,
     GEMINI_VIDEO_CHAPTERS_KEY,
@@ -578,6 +588,10 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
     }
   )
 
+  await expect(summaryButton).toBeDisabled()
+  await expect(summaryButton).toHaveAttribute("data-state", "success")
+  await expect(summaryButton).toHaveText("Chapters generated")
+
   const chapterToggle = youtubePage.locator(
     "#plasmo-summarize-youtube-chapter-toggle"
   )
@@ -590,6 +604,17 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
       ".ytp-time-display + #plasmo-summarize-youtube-chapter-toggle-host"
     )
   ).toBeVisible()
+  await expect
+    .poll(async () => {
+      return youtubePage.evaluate(() => {
+        const host = document.getElementById(
+          "plasmo-summarize-youtube-chapters-host"
+        )
+
+        return host ? getComputedStyle(host).marginBottom : null
+      })
+    })
+    .toBe("16px")
 
   await youtubePage
     .locator("#plasmo-summarize-youtube-chapter-toggle")

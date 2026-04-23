@@ -6,12 +6,12 @@
   "author": "MohammadRRamis",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MohammadRRamis/summarize-youtube-videos.git"
+    "url": "git+https://github.com/MohammadRRamis/auto-chapters-for-youtube.git"
   },
   "bugs": {
-    "url": "https://github.com/MohammadRRamis/summarize-youtube-videos/issues"
+    "url": "https://github.com/MohammadRRamis/auto-chapters-for-youtube/issues"
   },
-  "homepage": "https://github.com/MohammadRRamis/summarize-youtube-videos#readme",
+  "homepage": "https://github.com/MohammadRRamis/auto-chapters-for-youtube#readme",
   "keywords": [
     "plasmo",
     "browser-extension",

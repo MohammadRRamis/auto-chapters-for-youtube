@@ -216,6 +216,7 @@ const injectButtonStyles = () => {
       display: block;
       width: 100%;
       margin-top: 12px;
+      margin-bottom: 16px;
     }
 
     #${CHAPTER_PANEL_HOST_ID}[hidden] {
@@ -439,13 +440,57 @@ const updateSummaryButton = (
   button.setAttribute("aria-busy", String(state === "busy"))
 }
 
+const syncSummaryButtonState = async () => {
+  const videoId = getCurrentYoutubeVideoId()
+
+  if (!videoId) {
+    updateSummaryButton("Generate Chapters", "idle", false)
+
+    return
+  }
+
+  const [pendingRequest, activeRequest, storedResults] = await Promise.all([
+    getLocalStorageValue<PendingGeminiSummaryRequest>(
+      PENDING_GEMINI_SUMMARY_KEY
+    ),
+    getLocalStorageValue<PendingGeminiSummaryRequest>(
+      ACTIVE_GEMINI_SUMMARY_KEY
+    ),
+    getLocalStorageValue<StoredGeminiChapterResults>(
+      GEMINI_VIDEO_CHAPTERS_KEY
+    )
+  ])
+
+  const chapterResult = storedResults?.[videoId]
+
+  if (chapterResult && chapterResult.chapters.length > 0) {
+    updateSummaryButton("Chapters generated", "success", true)
+
+    return
+  }
+
+  if (activeRequest?.videoId === videoId) {
+    updateSummaryButton("Generating chapters...", "busy", true)
+
+    return
+  }
+
+  if (pendingRequest?.videoId === videoId) {
+    updateSummaryButton("Generating chapters...", "busy", true)
+
+    return
+  }
+
+  updateSummaryButton("Generate Chapters", "idle", false)
+}
+
 const scheduleButtonReset = () => {
   if (buttonResetTimeout !== null) {
     window.clearTimeout(buttonResetTimeout)
   }
 
   buttonResetTimeout = window.setTimeout(() => {
-    updateSummaryButton("Generate chapters", "idle", false)
+    void syncSummaryButtonState()
   }, 2200)
 }
 
@@ -1731,7 +1776,7 @@ const createSummaryButtonHost = () => {
   host.id = SUMMARY_BUTTON_HOST_ID
   button.id = SUMMARY_BUTTON_ID
   button.type = "button"
-  button.textContent = "Generate chapters"
+  button.textContent = "Generate Chapters"
   button.setAttribute(
     "aria-label",
     "Generate chapters for this video with Gemini"
@@ -1816,6 +1861,8 @@ const mountYoutubeSummaryButton = () => {
   } else if (firstChild !== host) {
     actionRow.insertBefore(host, firstChild)
   }
+
+  void syncSummaryButtonState()
 }
 
 const findGeminiComposer = () => {
