@@ -48,14 +48,15 @@ export const extractYoutubeVideoId = (videoUrl: string) => {
 
 export const buildGeminiPrompt = (videoUrl: string, requestId: string) =>
   [
-    "Summarize this YouTube video.",
+    "Generate timestamps and chapters for this YouTube video.",
     "Provide a concise overview first.",
-    "Then create a fallback chapter list for videos that do not already have YouTube chapters.",
+    "Then create a fallback chapter list for videos that do not already have native YouTube chapters.",
     "Return exactly two sections in this order:",
     "1. OVERVIEW: plain text only.",
     '2. CHAPTERS_JSON: one ```json``` code block containing {"requestId":"string","chapters":[{"start":"MM:SS or HH:MM:SS","end":"MM:SS or HH:MM:SS","title":"string"}]}',
     `Use this exact requestId value in the JSON: ${requestId}`,
     "List chapters in chronological order.",
+    "Favor useful navigation points over broad summarization.",
     "Every chapter must include a start time and a title. Include end only when it is clear.",
     "If the transcript or page context is too weak to infer reliable chapters, return an empty chapters array instead of guessing.",
     `Video URL: ${videoUrl}`

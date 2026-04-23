@@ -1,8 +1,8 @@
 {
-  "name": "summarize-youtube-videos",
-  "displayName": "Summarize YouTube Videos",
+  "name": "auto-chapters-for-youtube",
+  "displayName": "Auto Chapters for YouTube",
   "version": "0.0.1",
-  "description": "Browser extension that summarizes YouTube videos with Gemini and adds fallback chapter UI on YouTube.",
+  "description": "Free browser extension that generates YouTube timestamps and chapters with Gemini, without API keys, and injects a fallback chapter UI on videos that do not have native chapters.",
   "author": "MohammadRRamis",
   "repository": {
     "type": "git",
@@ -18,8 +18,10 @@
     "chrome-extension",
     "youtube",
     "gemini",
-    "ai-summary",
-    "chapters"
+    "chapters",
+    "timestamps",
+    "no-api-key",
+    "free-ai"
   ],
   "scripts": {
     "dev": "plasmo dev",

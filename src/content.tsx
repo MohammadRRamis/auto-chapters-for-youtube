@@ -445,7 +445,7 @@ const scheduleButtonReset = () => {
   }
 
   buttonResetTimeout = window.setTimeout(() => {
-    updateSummaryButton("Summarize with Gemini", "idle", false)
+    updateSummaryButton("Generate chapters", "idle", false)
   }, 2200)
 }
 
@@ -1731,8 +1731,11 @@ const createSummaryButtonHost = () => {
   host.id = SUMMARY_BUTTON_HOST_ID
   button.id = SUMMARY_BUTTON_ID
   button.type = "button"
-  button.textContent = "Summarize with Gemini"
-  button.setAttribute("aria-label", "Summarize this video with Gemini")
+  button.textContent = "Generate chapters"
+  button.setAttribute(
+    "aria-label",
+    "Generate chapters for this video with Gemini"
+  )
   button.dataset.state = "idle"
 
   button.addEventListener("click", async () => {
@@ -1768,10 +1771,10 @@ const createSummaryButtonHost = () => {
         throw new Error(response.error ?? "Could not open Gemini")
       }
 
-      updateSummaryButton("Sent to Gemini", "success", false)
+      updateSummaryButton("Chapters queued", "success", false)
       scheduleButtonReset()
     } catch (error) {
-      console.error("Failed to open Gemini summary flow", error)
+      console.error("Failed to open Gemini chapter flow", error)
       updateSummaryButton("Try again", "error", false)
       scheduleButtonReset()
     }

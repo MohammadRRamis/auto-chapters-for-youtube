@@ -439,7 +439,7 @@ const test = base.extend<{
 }>({
   context: async ({}, use) => {
     const userDataDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "summarize-youtube-videos-")
+      path.join(os.tmpdir(), "auto-chapters-for-youtube-")
     )
     const context = await chromium.launchPersistentContext(userDataDir, {
       channel: "chromium",
@@ -551,8 +551,11 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
   expect(request?.videoUrl).toBe(
     "https://www.youtube.com/watch?v=fallback-video"
   )
-  expect(request?.prompt).toContain("Summarize this YouTube video.")
+  expect(request?.prompt).toContain(
+    "Generate timestamps and chapters for this YouTube video."
+  )
   expect(request?.prompt).toContain("CHAPTERS_JSON")
+  expect(request?.requestId).toBeTruthy()
   expect(request?.prompt).toContain(
     `Use this exact requestId value in the JSON: ${request?.requestId}`
   )
