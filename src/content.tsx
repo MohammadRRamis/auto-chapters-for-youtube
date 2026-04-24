@@ -90,20 +90,17 @@ const injectButtonStyles = () => {
       font: 600 14px/1.1 "IBM Plex Sans", "Segoe UI", sans-serif;
       letter-spacing: 0.01em;
       cursor: pointer;
-      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, opacity 160ms ease;
-      box-shadow: 0 10px 24px rgba(14, 116, 144, 0.1);
+      transition: transform 160ms ease, border-color 160ms ease, opacity 160ms ease;
     }
 
     html[dark] #${SUMMARY_BUTTON_ID} {
       border-color: rgba(255, 255, 255, 0.12);
       background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(14, 165, 233, 0.12));
       color: rgb(226, 232, 240);
-      box-shadow: 0 12px 28px rgba(8, 47, 73, 0.26);
     }
 
     #${SUMMARY_BUTTON_ID}:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 14px 28px rgba(14, 116, 144, 0.18);
     }
 
     #${SUMMARY_BUTTON_ID}:disabled {
@@ -456,9 +453,7 @@ const syncSummaryButtonState = async () => {
     getLocalStorageValue<PendingGeminiSummaryRequest>(
       ACTIVE_GEMINI_SUMMARY_KEY
     ),
-    getLocalStorageValue<StoredGeminiChapterResults>(
-      GEMINI_VIDEO_CHAPTERS_KEY
-    )
+    getLocalStorageValue<StoredGeminiChapterResults>(GEMINI_VIDEO_CHAPTERS_KEY)
   ])
 
   const chapterResult = storedResults?.[videoId]
