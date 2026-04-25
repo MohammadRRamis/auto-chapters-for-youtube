@@ -1,8 +1,8 @@
 {
   "name": "auto-chapters-for-youtube",
   "displayName": "Auto Chapters for YouTube",
-  "version": "0.0.1",
-  "description": "Free browser extension that generates YouTube timestamps and chapters with Gemini, without API keys, and injects a fallback chapter UI on videos that do not have native chapters.",
+  "version": "0.0.2",
+  "description": "Generate YouTube timestamps and fallback chapters with Gemini, without API keys, on videos without native chapters.",
   "author": "MohammadRRamis",
   "repository": {
     "type": "git",
