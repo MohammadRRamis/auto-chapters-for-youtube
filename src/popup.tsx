@@ -3,7 +3,7 @@ import "./style.css"
 function IndexPopup() {
   return (
     <div
-      className="plasmo-w-[340px] plasmo-overflow-hidden plasmo-rounded-[24px] plasmo-border plasmo-border-[#e5e5e5] plasmo-bg-white plasmo-text-[#0f0f0f] plasmo-shadow-[0_18px_48px_rgba(15,15,15,0.12)]"
+      className="plasmo-w-[340px] plasmo-bg-white plasmo-text-[#0f0f0f]"
       style={{ fontFamily: '"Roboto", "Segoe UI", Arial, sans-serif' }}>
       <div className="plasmo-bg-[linear-gradient(180deg,#fff7f7_0%,#ffffff_72%)] plasmo-px-5 plasmo-pb-4 plasmo-pt-5">
         <span className="plasmo-inline-flex plasmo-rounded-full plasmo-bg-[#ffeded] plasmo-px-3 plasmo-py-1 plasmo-text-[11px] plasmo-font-semibold plasmo-uppercase plasmo-tracking-[0.08em] plasmo-text-[#cc0000]">
