@@ -1274,6 +1274,8 @@ const bindGeneratedChapterSync = (chapters: ResolvedGeminiChapter[]) => {
 
 const bindGeneratedChapterHoverSync = (chapters: ResolvedGeminiChapter[]) => {
   const progressBar = document.querySelector<HTMLElement>(".ytp-progress-bar")
+  const hoverActivationTopInset = 18
+  const hoverActivationBottomInset = 6
 
   if (!progressBar) {
     unbindGeneratedChapterHoverSync()
@@ -1311,8 +1313,8 @@ const bindGeneratedChapterHoverSync = (chapters: ResolvedGeminiChapter[]) => {
     const isInsideProgressBar =
       event.clientX >= rect.left &&
       event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom
+      event.clientY >= rect.top - hoverActivationTopInset &&
+      event.clientY <= rect.bottom + hoverActivationBottomInset
 
     if (!isInsideProgressBar) {
       return
