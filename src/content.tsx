@@ -275,15 +275,6 @@ const injectButtonStyles = () => {
       padding: 16px 16px 8px;
     }
 
-    #${CHAPTER_PANEL_HOST_ID} .plasmo-ai-native-panel-eyebrow {
-      display: inline-flex;
-      margin-bottom: 6px;
-      font: 700 11px/1 "Roboto", "Arial", sans-serif;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #065fd4;
-    }
-
     #${CHAPTER_PANEL_HOST_ID} .plasmo-ai-native-panel-title {
       margin: 0;
       font: 600 20px/1.2 "Roboto", "Arial", sans-serif;
@@ -1401,7 +1392,6 @@ const createGeneratedChapterPanel = (
   const panel = document.createElement("div")
   const header = document.createElement("div")
   const headerText = document.createElement("div")
-  const eyebrow = document.createElement("span")
   const title = document.createElement("h2")
   const closeButton = document.createElement("button")
   const list = document.createElement("div")
@@ -1411,13 +1401,11 @@ const createGeneratedChapterPanel = (
   panel.setAttribute("role", "dialog")
   panel.setAttribute("aria-label", "Generated chapters")
   header.className = "plasmo-ai-native-panel-header"
-  eyebrow.className = "plasmo-ai-native-panel-eyebrow"
   title.className = "plasmo-ai-native-panel-title"
   closeButton.className = "plasmo-ai-native-panel-close"
   list.className = "plasmo-ai-native-panel-list"
 
   panel.dataset.plasmoGenerated = "true"
-  eyebrow.textContent = "Gemini generated"
   title.textContent = "Chapters"
   closeButton.type = "button"
   closeButton.textContent = "Close"
@@ -1425,7 +1413,7 @@ const createGeneratedChapterPanel = (
     setGeneratedChapterPanelVisibility(false)
   })
 
-  headerText.append(eyebrow, title)
+  headerText.append(title)
   header.append(headerText, closeButton)
   panel.append(header)
 
