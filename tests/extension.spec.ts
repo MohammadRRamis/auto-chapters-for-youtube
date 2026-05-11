@@ -568,7 +568,16 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
 
   await expect(summaryButton).toBeDisabled()
   await expect(summaryButton).toHaveAttribute("data-state", "busy")
-  await expect(summaryButton).toHaveText(/Opening Gemini\.\.\.|Generating chapters\.\.\./)
+  await expect(summaryButton).toHaveText(
+    /Opening Gemini\.\.\.|Generating chapters\.\.\./
+  )
+  await expect
+    .poll(async () => {
+      return summaryButton.evaluate((element) => {
+        return getComputedStyle(element).cursor
+      })
+    })
+    .toBe("default")
 
   await setLocalStorageValue<StoredGeminiChapterResults>(
     context,
@@ -591,6 +600,13 @@ test("opens Gemini with a structured prompt and renders stored native-style chap
   await expect(summaryButton).toBeDisabled()
   await expect(summaryButton).toHaveAttribute("data-state", "success")
   await expect(summaryButton).toHaveText("Chapters generated")
+  await expect
+    .poll(async () => {
+      return summaryButton.evaluate((element) => {
+        return getComputedStyle(element).cursor
+      })
+    })
+    .toBe("default")
 
   const chapterToggle = youtubePage.locator(
     "#plasmo-summarize-youtube-chapter-toggle"

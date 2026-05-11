@@ -84,36 +84,68 @@ const injectButtonStyles = () => {
       min-height: 36px;
       padding: 0 16px;
       border-radius: 9999px;
-      border: 1px solid rgba(15, 23, 42, 0.12);
-      background: linear-gradient(135deg, rgba(12, 74, 110, 0.08), rgba(14, 116, 144, 0.14));
-      color: rgb(15, 23, 42);
-      font: 600 14px/1.1 "IBM Plex Sans", "Segoe UI", sans-serif;
+      border: 0;
+      background: #f2f2f2;
+      color: #0f0f0f;
+      font: 500 14px/1 "Roboto", "Arial", sans-serif;
       letter-spacing: 0.01em;
       cursor: pointer;
-      transition: transform 160ms ease, border-color 160ms ease, opacity 160ms ease;
+      white-space: nowrap;
+      transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
     }
 
     html[dark] #${SUMMARY_BUTTON_ID} {
-      border-color: rgba(255, 255, 255, 0.12);
-      background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(14, 165, 233, 0.12));
-      color: rgb(226, 232, 240);
+      background: #272727;
+      color: #f1f1f1;
     }
 
     #${SUMMARY_BUTTON_ID}:hover:not(:disabled) {
-      transform: translateY(-1px);
+      background: #e5e5e5;
+    }
+
+    html[dark] #${SUMMARY_BUTTON_ID}:hover:not(:disabled) {
+      background: #3f3f3f;
+    }
+
+    #${SUMMARY_BUTTON_ID}:focus-visible {
+      outline: 2px solid rgba(6, 95, 212, 0.38);
+      outline-offset: 2px;
     }
 
     #${SUMMARY_BUTTON_ID}:disabled {
-      opacity: 0.68;
-      cursor: wait;
+      cursor: default;
     }
 
     #${SUMMARY_BUTTON_ID}[data-state="success"] {
-      border-color: rgba(22, 163, 74, 0.34);
+      background: rgba(255, 0, 51, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 0, 51, 0.12);
+      color: #b91c1c;
+    }
+
+    html[dark] #${SUMMARY_BUTTON_ID}[data-state="success"] {
+      background: rgba(255, 78, 78, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255, 138, 138, 0.18);
+      color: #ffb3b3;
+    }
+
+    #${SUMMARY_BUTTON_ID}[data-state="busy"] {
+      background: rgba(255, 0, 51, 0.12);
+      color: #b91c1c;
+    }
+
+    html[dark] #${SUMMARY_BUTTON_ID}[data-state="busy"] {
+      background: rgba(255, 78, 78, 0.22);
+      color: #ffc4c4;
     }
 
     #${SUMMARY_BUTTON_ID}[data-state="error"] {
-      border-color: rgba(220, 38, 38, 0.32);
+      background: rgba(196, 18, 18, 0.12);
+      color: #991b1b;
+    }
+
+    html[dark] #${SUMMARY_BUTTON_ID}[data-state="error"] {
+      background: rgba(196, 18, 18, 0.22);
+      color: #fecaca;
     }
 
     #${CHAPTER_TOGGLE_HOST_ID} {
@@ -246,7 +278,7 @@ const injectButtonStyles = () => {
     #${CHAPTER_PANEL_HOST_ID} .plasmo-ai-native-panel-eyebrow {
       display: inline-flex;
       margin-bottom: 6px;
-      font: 700 11px/1 "IBM Plex Sans", "Segoe UI", sans-serif;
+      font: 700 11px/1 "Roboto", "Arial", sans-serif;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #065fd4;
